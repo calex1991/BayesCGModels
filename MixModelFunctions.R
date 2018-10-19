@@ -1,11 +1,11 @@
 # Functionality used within multivariate mixed model sampler
-# Date: 03/10/17
 # Filename : MixModelFunctions.R
 # Author: CA
 
-##                              ##
-# Functions required in sampler  #
-##                              ##
+##                                          ##
+# Functions required in SimplifiedSampler.R  #
+##                                          ##
+
 
 # Functionality to prepare data matrix
 prepare.data <- function(data, columns=colnames(data), max.interaction=1) {
@@ -30,9 +30,11 @@ prepare.data <- function(data, columns=colnames(data), max.interaction=1) {
   list(X=X, blocks=X.blocks)  # Return list object containing design matrix and the matrix structure in blocks
 }
 
+
 # Returns which terms in data matrix contain no interactions
 non.interaction.terms <- function(cmodel)
   which(sapply(cmodel$blocks, function(a) length(a$parents))==0)
+
 
 # Returns the design matrix x for a specified model with active selecting the respective blocks
 getX <- function(cmodel, active) {
@@ -40,7 +42,7 @@ getX <- function(cmodel, active) {
   cmodel$X[,col.active,drop=FALSE]
 }
 
-#  Functionality to 
+#  Functionality to obtain which terms can be considered for removal in the model selection step
 candidate.drop.terms <- function(active.terms, X.blocks) {
   select <- sapply(X.blocks[active.terms], function(a) length(intersect(active.terms, a$children))==0)
   if (length(select)==0)
@@ -53,10 +55,10 @@ candidate.add.terms <- function(active.terms, X.blocks) {
   stage1 <- setdiff(which(!sapply(X.blocks, is.null)), active.terms) # Obtain the terms which can be added at the model selection step
   if (length(stage1)==0)  # If we have all terms added, return integer(0)
     return(stage1)
-  # 
   stage1[sapply(X.blocks[stage1], function(a) all(a$parents%in%active.terms))]  # Select which terms to include, making sure all parents are included if an interaction is added
 }
 
+# Expand out beta to include terms which are now not active
 expand.beta <- function(beta, active.terms, cmodel) {
   ebeta <- list()
   for (j in 1:length(beta)) {
@@ -94,7 +96,7 @@ compute.lmodelev <- function(posterior.result,Y, Yhat, Xj, j, tau, Lambda.eps) {
   sum(dnorm(posterior.result$pmean, 0, tau[j], log=TRUE)) + sum(dmvnorm(Y-Yhat.tmp, rep(0, ncol(Y)), solve(Lambda.eps), log=TRUE)) 
 }
 
-# Block diagonal function
+# Block diagonal matrix function
 blockdiag <- function(M) {
   m.out <- list()
   for (i in 1:length(M)) {

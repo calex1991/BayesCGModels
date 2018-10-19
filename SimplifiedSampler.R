@@ -1,7 +1,6 @@
 # Full sampler code with data sorting and simple functionality
 # Filename - SimplifiedSampler.R
 # Author - CA
-# Date - 23/03/18
 
 # Libraries
 library(MASS)
@@ -26,7 +25,7 @@ source("DoubleMHMultReffs.R")
 # Sampler #
 ##       ##
 
-Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,model.selection=TRUE,
+Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,model.selection=TRUE,Graphs=TRUE,
                         tau,a0.tau=NULL,b0.tau=NULL,d0.reffs=NULL,V0.reffs=NULL,d0.eps=NULL,V0.eps=NULL,G=NULL,
                         nesting=TRUE,nest.terms=NULL,nest.reff=NULL,
                         param.ex=TRUE,phi.alpha=NULL,phi.beta=NULL,
@@ -39,7 +38,6 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
   split.random <- strsplit(Reduce(paste,deparse(random)),"~")[[1]]
   reffects     <- trimws(strsplit(split.random[2],"\\+")[[1]])
   
-  #time1 <- proc.time()[1]
   # Creation of input for data
   cmodel <- prepare.data(data[,feffects], max.interaction=interactions)
   
@@ -81,7 +79,6 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
   
   X <- lapply(active, getX, cmodel=cmodel)
   
-  #time.dataprep <- proc.time()[1] - time1
   # Generate priors if not specified
   if(missing(tau))
     tau <- 1 
@@ -104,9 +101,9 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
   }
   if(param.ex==TRUE){
     if(is.null(phi.alpha)==TRUE)
-      phi.alpha <- 100
+      phi.alpha <- 10
     if(is.null(phi.beta)==TRUE)
-      phi.beta <- 100
+      phi.beta <- 10
   }
   if(is.null(G)==TRUE)  
     G <- diag(0,ncol(Y))
@@ -124,7 +121,6 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
   
   rLambda <- rep(list(diag(ncol(Y))), length(reffs))
   
-  #time1 <- proc.time()[1]
   if(nesting==T)  {
     if(is.null(nest.terms)==TRUE) {
       nest.terms <- list()
@@ -143,7 +139,6 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
     if(length(nest.terms)==0)
       nesting <- FALSE
   }
-  #nestgen.time <- proc.time()[1] - time1
   
   # Storage objects
   betas <- vector(length=iterations, mode='list')
@@ -153,19 +148,12 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
   actives <- array(FALSE, dim=c(iterations, ncol(Y), length(cmodel$blocks)))
   Gs <- integer(iterations)
   acceptance.rate <- vector(length=iterations,mode='list')
-  #beta.time <- vector(length = iterations)
-  #reffs.time <- vector(length = iterations)
-  #nest.time <- vector(length = iterations)
-  #prec.time <- vector(length = iterations)
-  #param.time <- vector(length = iterations)
-  #loop.time <- vector(length = iterations)
-  
+
   # Initialise progress bar
   pb <- txtProgressBar(0,iterations)
   
   
   for(ix in 1:iterations) {
-    #time0 <- sum(proc.time()[c(1,2)])
     setTxtProgressBar(pb,ix) # Set state in progress bar
     
     # Compute current working Y for beta calculation by removing all random effects
@@ -178,7 +166,6 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
     
     
     # Sample beta update
-    #time1 <- sum(proc.time()[c(1,2)])
     # Generate tau prior on beta covariance
     for(j in 1:length(beta)) {
       if(ix!=1) # Don't update tau on the first iteration
@@ -232,9 +219,7 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
         }
       }
     }
-    #beta.time[ix] <- sum(proc.time()[c(1,2)]) - time1
-    
-    #time1 <- sum(proc.time()[c(1,2)])
+
     # Compute random effects coefficients
     for (k in 1:ncol(Y))
       Ywork[,k] <- drop(Y[,k]-X[[k]]%*%beta[[k]]) # Obtain working Y by removing betas
@@ -264,9 +249,7 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
         )
     }
     
-    #reffs.time[ix] <- sum(proc.time()[c(1,2)]) - time1
     ## Nesting step ##
-    #time1 <- sum(proc.time()[c(1,2)])
     if(nesting==T)  {
       for(j in 1:length(nest.reff)) {
         if(length(nest.terms[[j]])!=0)  {
@@ -307,113 +290,111 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
         }
       }
     }
-    #nest.time[ix] <- sum(proc.time()[c(1,2)]) - time1
     
-    # Precision estimates using GM step
-    #time1 <- sum(proc.time()[c(1,2)])
-    if(ncol(Y)==1)  {
-      for (j in 1:length(reffs)) 
-        Ywork <- Ywork - reffs[[j]][rrlookup[[j]],] 
-      
-      Lambda.eps <- as.matrix(rwish(v=nrow(Y)+d0.eps,S=solve(crossprod(Ywork)+V0.eps)))
-      
-      for(j in 1:length(reffs)) {
-        rLambda[[j]] <- as.matrix(rwish(v=nrow(reffs[[j]])+d0.reffs[j],S=solve(crossprod(reffs[[j]])+V0.reffs[[j]])))
-      }
-    }
-
-    if(ncol(Y)==2)  {
-      for(j in 1:length(reffs))
-        Ywork <- Ywork - reffs[[j]][rrlookup[[j]],] 
-      
-      evs <- numeric(length(graphs2))
-      for (k in 1:length(graphs2)) {
-        evs[k] <- graphlgev2(Ywork, graphs2[[k]], d0.eps, V0.eps)
+    if(Graphs==TRUE)  {
+      # Precision estimates using GM step
+      if(ncol(Y)==1)  {
         for (j in 1:length(reffs)) 
-          evs[k] <- evs[k]+graphlgev2(reffs[[j]], graphs2[[k]], d0.reffs[j], V0.reffs[[j]])
-      }
-      evs <- evs - max(evs)
-      Gs[[ix]] <- sample(length(graphs2), 1, prob=exp(evs))
-      
-      G <- graphs2[[Gs[[ix]]]]
-      Lambda.eps <- rGWish_sampler(1, nrow(Y)+d0.eps,  solve(crossprod(Ywork)+V0.eps),G,100)[,,1]
-      for (j in 1:length(reffs)) {
-        rLambda[[j]] <- rGWish_sampler(1, d0.reffs[j]+nrow(reffs[[j]]), solve(crossprod(reffs[[j]])+V0.reffs[[j]]),G,100)[,,1]
+          Ywork <- Ywork - reffs[[j]][rrlookup[[j]],] 
+        
+        Lambda.eps <- as.matrix(rwish(v=nrow(Y)+d0.eps,S=solve(crossprod(Ywork)+V0.eps)))
+        
+        for(j in 1:length(reffs)) {
+          rLambda[[j]] <- as.matrix(rwish(v=nrow(reffs[[j]])+d0.reffs[j],S=solve(crossprod(reffs[[j]])+V0.reffs[[j]])))
         }
-    }
-    
-    if(ncol(Y)==3)  {
+      }
+      
+      if(ncol(Y)==2)  {
+        for(j in 1:length(reffs))
+          Ywork <- Ywork - reffs[[j]][rrlookup[[j]],] 
+        
+        evs <- numeric(length(graphs2))
+        for (k in 1:length(graphs2)) {
+          evs[k] <- graphlgev2(Ywork, graphs2[[k]], d0.eps, V0.eps)
+          for (j in 1:length(reffs)) 
+            evs[k] <- evs[k]+graphlgev2(reffs[[j]], graphs2[[k]], d0.reffs[j], V0.reffs[[j]])
+        }
+        evs <- evs - max(evs)
+        Gs[[ix]] <- sample(length(graphs2), 1, prob=exp(evs))
+        
+        G <- graphs2[[Gs[[ix]]]]
+        Lambda.eps <- rGWish_sampler(1, nrow(Y)+d0.eps,  solve(crossprod(Ywork)+V0.eps),G,100)[,,1]
+        for (j in 1:length(reffs)) {
+          rLambda[[j]] <- rGWish_sampler(1, d0.reffs[j]+nrow(reffs[[j]]), solve(crossprod(reffs[[j]])+V0.reffs[[j]]),G,100)[,,1]
+        }
+      }
+      
+      if(ncol(Y)==3)  {
+        for (j in 1:length(reffs)) 
+          Ywork <- Ywork - reffs[[j]][rrlookup[[j]],]   
+        
+        evs <- numeric(length(graphs3))
+        for (k in 1:length(graphs3)) {
+          evs[k] <- graphlgev3(Ywork, graphs3[[k]], d0.eps, V0.eps)
+          for (j in 1:length(reffs)) 
+            evs[k] <- evs[k]+graphlgev3(reffs[[j]], graphs3[[k]], d0.reffs[j], V0.reffs[[j]])
+        }
+        evs <- evs - max(evs)
+        Gs[[ix]] <- sample(length(graphs3), 1, prob=exp(evs))
+        
+        G <- graphs3[[Gs[[ix]]]]
+        
+        Lambda.eps <- rGWish_sampler(1, nrow(Y)+d0.eps,  solve(crossprod(Ywork)+V0.eps),G,100)[,,1]
+        for (j in 1:length(reffs)) {
+          rLambda[[j]] <- rGWish_sampler(1, d0.reffs[j]+nrow(reffs[[j]]), solve(crossprod(reffs[[j]])+V0.reffs[[j]]),G,100)[,,1]
+        }
+      }
+      if(ncol(Y)>3){
+        Ywork <- Ywork - reffs[[j]][rrlookup[[j]],]   
+        
+        prec.res <- double.MH(Ywork,reffs,iterations=1,b.eps=d0.eps,D.eps=V0.eps,b.reffs=d0.reffs,D.reffs=V0.reffs,G=G)
+        
+        Lambda.eps <- prec.res$Precision.eps[[1]]
+        for(j in 1:length(reffs)) {
+          rLambda[[j]] <- prec.res$Precision.reffs[[j]][[1]]
+        }
+        G <- prec.res$G[[1]]
+      }
+    }else{
+      # Precision estimates using standard Wishart prior
       for (j in 1:length(reffs)) 
         Ywork <- Ywork - reffs[[j]][rrlookup[[j]],]   
       
-      evs <- numeric(length(graphs3))
-      for (k in 1:length(graphs3)) {
-        evs[k] <- graphlgev3(Ywork, graphs3[[k]], d0.eps, V0.eps)
-        for (j in 1:length(reffs)) 
-          evs[k] <- evs[k]+graphlgev3(reffs[[j]], graphs3[[k]], d0.reffs[j], V0.reffs[[j]])
-      }
-      evs <- evs - max(evs)
-      Gs[[ix]] <- sample(length(graphs3), 1, prob=exp(evs))
-      
-      G <- graphs3[[Gs[[ix]]]]
-      
-      Lambda.eps <- rGWish_sampler(1, nrow(Y)+d0.eps,  solve(crossprod(Ywork)+V0.eps),G,100)[,,1]
+      Lambda.eps <- as.matrix(rwish(v=nrow(Y)+d0.eps,S=solve(crossprod(Ywork)+V0.eps)))
       for (j in 1:length(reffs)) {
-        rLambda[[j]] <- rGWish_sampler(1, d0.reffs[j]+nrow(reffs[[j]]), solve(crossprod(reffs[[j]])+V0.reffs[[j]]),G,100)[,,1]
+        rLambda[[j]] <-  as.matrix(rwish(v=nrow(reffs[[j]])+d0.reffs[j],S=solve(crossprod(reffs[[j]])+V0.reffs[[j]])))
       }
-      
     }
-    if(ncol(Y)>3){
-      Ywork <- Ywork - reffs[[j]][rrlookup[[j]],]   
-      
-      prec.res <- double.MH(Ywork,reffs,iterations=1,b.eps=d0.eps,D.eps=V0.eps,b.reffs=d0.reffs,D.reffs=V0.reffs,G=G)
-      
-      Lambda.eps <- prec.res$Precision.eps[[1]]
-      for(j in 1:length(reffs)) {
-        rLambda[[j]] <- prec.res$Precision.reffs[[j]][[1]]
-      }
-      G <- prec.res$G[[1]]
-      
-      # Manual precision estimates with fixed graph
-      #for(j in 1:length(reffs))
-      #Ywork <- Ywork - reffs[[j]][rrlookup[[j]],]
-      
-      #Lambda.eps <- rGWish_sampler(1, nrow(Y)+d0.eps,  solve(crossprod(Ywork)+V0.eps),G,100)[,,1]
-      #Lambda.eps <- rgwish(1,G,nrow(Y)+d0.eps,(crossprod(Ywork)+V0.eps))[,,1]
-      #for (j in 1:length(reffs)) {
-      #rLambda[[j]] <- rGWish_sampler(1, d0.reffs[j]+nrow(reffs[[j]]), solve(crossprod(reffs[[j]])+V0.reffs[[j]]),G,100)[,,1]
-      #rLambda[[j]] <- rgwish(1,G,d0.reffs[j]+nrow(reffs[[j]]),(crossprod(reffs[[j]])+V0.reffs[[j]]))[,,1]
-    }
-    #prec.time[ix] <- sum(proc.time()[c(1,2)])- time1
+    
     
     ## Parameter expansion step ##
-    #time1 <- sum(proc.time()[c(1,2)])
     if(param.ex==T) {
       for(j in 1:length(reffs)) {
         # Draw phi from the inverse gamma distribution
         phi <- rgamma(1,phi.alpha,phi.beta)
-        D.phi <- diag(phi,ncol(Y))
         
         # Form effect.star and precision.star
-        effect.star <- reffs[[j]]%*%D.phi
-        prec.star <- t(D.phi)%*%(((rLambda[[j]])))%*%D.phi
+        effect.star <- reffs[[j]]*phi
+        prec.star <- rLambda[[j]]/(phi^2)
         
         # Compute acceptance rate
-        original.rate <- log(1/phi)+sum(dmvnorm(Ywork,rep(0,ncol(Y)),solve(Lambda.eps)),log=TRUE)+
-          sum(dmvnorm(reffs[[j]],rep(0,ncol(Y)),solve(rLambda[[j]])),log=TRUE)+
-          sum(log(dwish(((rLambda[[j]])),d0.reffs[j],(V0.reffs[[j]]))))
+        original.rate <- dgamma(phi,phi.alpha,phi.beta,log=TRUE)+sum(dmvnorm(Ywork,rep(0,ncol(Y)),solve(Lambda.eps),log=TRUE))+
+          sum(dmvnorm(reffs[[j]],rep(0,ncol(Y)),solve(rLambda[[j]]),log=TRUE))+
+          log(dwish(rLambda[[j]],d0.reffs[j],V0.reffs[[j]]))
         
         Ystar <- NULL
         Ystar <- Ywork + reffs[[j]][rrlookup[[j]],]
         Ystar <- Ystar - effect.star[rrlookup[[j]],]
         
-        star.rate <- log(phi)+sum(dmvnorm(Ystar,rep(0,ncol(Y)),solve(Lambda.eps)),log=TRUE)+ 
-          sum(dmvnorm(effect.star,rep(0,ncol(Y)),solve(prec.star)),log=TRUE)+
-          sum(log(dwish(((prec.star)),d0.reffs[j],V0.reffs[[j]])))
+        star.rate <- dgamma(1/phi,phi.alpha,phi.beta,log=TRUE)+sum(dmvnorm(Ystar,rep(0,ncol(Y)),solve(Lambda.eps),log=TRUE))+ 
+          sum(dmvnorm(effect.star,rep(0,ncol(Y)),solve(prec.star),log=TRUE))+
+          log(dwish(prec.star,d0.reffs[j],V0.reffs[[j]]))
         
-        acc.rate <- star.rate - original.rate
+        factors <- ((length(reffs[[j]])+(ncol(Y)*(ncol(Y)+1))))*log(phi)
         
-        if(log(runif(1)) <= acc.rate) {
+        acc.rate <- star.rate - original.rate + factors
+        
+        if(log(runif(1)) < acc.rate) {
           reffs[[j]] <- effect.star
           rLambda[[j]] <- prec.star
           acceptance.rate[[j]][ix] <- 1
@@ -422,7 +403,6 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
         }
       }
     }
-    #param.time[ix] <- sum(proc.time()[c(1,2)]) - time1
     
     reffss[[ix]] <- reffs
     rLambdas[[ix]] <- rLambda
@@ -432,8 +412,6 @@ Simplified_sampler <- function(data,model,random,iterations=500,interactions=1,m
     
     for (j in 1:length(active))
       actives[ix,j,active[[j]]] <- TRUE
-    #loop.time[ix] <- sum(proc.time()[c(1,2)]) - time0
   }
-  #return(list(dataprep.time = time.dataprep,time.nestgen=nestgen.time,time.beta=beta.time,time.reffs=reffs.time,time.nest=nest.time,time.prec=prec.time,time.param=param.time,time.loop=loop.time))
   return(list(beta=betas,reffs=reffss,Lambda.eps=Lambda.epss,rLambda=rLambdas,Graphs=Gs,actives=actives,acceptance=acceptance.rate,cmodel=cmodel,resp=response,fixed=feffects,rand=reffects,model=model,Y=Y))
 }

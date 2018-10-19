@@ -1,5 +1,4 @@
 # Functions to compute the density of a chordal graph (3x3)
-# Date - 04/10/17
 # Filename - ChordalGraph.R
 # Author - CA
 

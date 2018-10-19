@@ -1,6 +1,5 @@
 # GM Production Code
 # Filename: PlotGM.R
-# Date; 17/03/18
 # Author: CA
 
 # Libraries
@@ -9,11 +8,9 @@ library(shape)
 # Plot graph function
 plotgraph <- function(result, G=NULL, altnames, ynames,Ycols="white", Ytextcols=0, Xcols="white", Xtextcols=0) {
   
-  # Code for drawing chain graph
-  
+  # Code for drawing chain graphs
   zigzag <- function(n) {
     z <- (rep(c(-1,1), n%/%2+1) * rep(1:(n%/%2+1), each=2))[1:n]
-    #   z[z<0] <- z[z<0] + 1
     -z
   }
   

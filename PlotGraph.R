@@ -1,12 +1,12 @@
 # Functionality to plot grpahs from given model output
-#Filename: PlotGraph.R
+# Filename: PlotGraph.R
 # Author: CA
-# Data: 10/05/18
 
 # Source files
 source("PlotGM.R")
 source("ChordalGraph.R")
 
+# Generic plot graph function, using PlotGM
 PlotGraph <- function(x,select.model=1,mult.models=FALSE)  {
   
   # Obtain rankings of models
@@ -21,10 +21,6 @@ PlotGraph <- function(x,select.model=1,mult.models=FALSE)  {
   
   if(ncol(x$Y)==1)  {
     Ycols <- c(rgb(237/255,28/255,36/255))
-    
-    Xcols <- c("pink","pink","pink","yellow","yellow")
-    
-    #par(bg=rgb(58/255,95/255,134/255))
     
     if(mult.models==TRUE) {
       par(mfrow=c(2,2))
@@ -55,9 +51,6 @@ PlotGraph <- function(x,select.model=1,mult.models=FALSE)  {
     Ycols <- c(rgb(237/255,28/255,36/255),
                rgb(0/255,0/162,232/255))
     
-    Xcols <- c("pink","pink","pink","yellow","yellow")
-    
-    #par(bg=rgb(58/255,95/255,134/255))
     if(mult.models==TRUE) {
       par(mfrow=c(2,2))
       for(j in 1:4) {
@@ -90,11 +83,7 @@ PlotGraph <- function(x,select.model=1,mult.models=FALSE)  {
     Ycols <- c(rgb(237/255,28/255,36/255),
                rgb(0/255,0/162,232/255),
                rgb(34/255,177/255, 76/255))
-    
-    Xcols <- c("pink","pink","pink","yellow","yellow")
-    
-    #par(bg=rgb(58/255,95/255,134/255))
-    
+
     if(mult.models==TRUE) {
       par(mfrow=c(2,2))
       for(j in 1:4) {
@@ -125,13 +114,8 @@ PlotGraph <- function(x,select.model=1,mult.models=FALSE)  {
   }
   
   if(ncol(x$Y)>3) {
-    Ycols <- c(rgb(237/255,28/255,36/255),
-               rgb(0/255,0/162,232/255),
-               rgb(34/255,177/255, 76/255))
-    
-   # Xcols <- c("pink","pink","pink","yellow","yellow")
-    
-    #par(bg=rgb(58/255,95/255,134/255))
+    Ycols <- rep("red",ncol(x$Y))
+
     if(mult.models==TRUE) {
       par(mfrow=c(2,2))
       for(j in 1:4) {

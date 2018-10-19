@@ -1,6 +1,5 @@
 # Graphical model selection by double M-H algorithm for multiple precision estimates
 # Filename - DoubleMHMultReffs.R
-# Date - 09/09/16
 # Author - CA
 
 # Source files
@@ -68,11 +67,9 @@ double.MH <- function(dataset,reffs,iterations=10000, D.eps=diag(ncol(dataset)),
   
   
   # Initial precision estimate
-  #Omega.eps <- rgwish(n=1,adj.g = G,b=b.star.eps,D=D.star.eps)[,,1]
   Omega.eps <- rGWish_sampler(1,b.star.eps,solve(D.star.eps),G,100)[,,1]
   for(j in 1:length(reffs)) {
     Omega.reffs[[j]] <- rGWish_sampler(1,b.star.reffs[j],solve(D.star.reffs[[j]]),G,100)[,,1]
-    #Omega.reffs[[j]] <- rgwish(n=1,adj.g=G,b=b.star.reffs[j],D=D.star.reffs[[j]])[,,1]
   }
   
   # Begin MCMC
@@ -87,10 +84,8 @@ double.MH <- function(dataset,reffs,iterations=10000, D.eps=diag(ncol(dataset)),
       G.prime[J,K]  <- G.prime[K,J] <- 0
       
     # 1(b). Generate Omega.prime from new graph G.prime
-    #Omega.prime.eps <- rgwish(n=1,adj.g = G.prime,b=b.eps,D=D.eps)[,,1]
     Omega.prime.eps <- rGWish_sampler(1,b.eps,solve(D.eps),G.prime,100)[,,1]
     for(j in 1:length(reffs)) {
-       #Omega.prime.reffs[[j]] <- rgwish(n=1,adj.g = G.prime,b=b.reffs[j],D=D.reffs[[j]])[,,1]
        Omega.prime.reffs[[j]] <- rGWish_sampler(1, b.reffs[j],solve(D.reffs[[j]]),G.prime,100)[,,1]
      }
       
@@ -216,10 +211,8 @@ double.MH <- function(dataset,reffs,iterations=10000, D.eps=diag(ncol(dataset)),
       G.prime[J,K] <- G.prime[K,J] <- 1
       
       # 1(b). Generate Omega.prime from new graph G.prime
-      #Omega.prime.eps <- rgwish(n=1,adj.g = G.prime,b=b.eps,D=D.eps)[,,1]
       Omega.prime.eps <- rGWish_sampler(1,b.eps,solve(D.eps),G.prime,100)[,,1]
       for(j in 1:length(reffs)) {
-        #Omega.prime.reffs[[j]] <- rgwish(n=1,adj.g = G.prime,b=b.reffs[j],D=D.reffs[[j]])[,,1]
         Omega.prime.reffs[[j]] <- rGWish_sampler(1, b.reffs[j],solve(D.reffs[[j]]),G.prime,100)[,,1]
       }
       
@@ -339,11 +332,8 @@ double.MH <- function(dataset,reffs,iterations=10000, D.eps=diag(ncol(dataset)),
     }
     
     # Sample Omega from G-Wshart sampler with new G
-    #Omega <- rGWish_sampler(1,b.star,solve(D.star),G,100)[,,1]
-    #Omega.eps <- rgwish(n=1,b=b.star.eps,D=D.star.eps,adj.g=G)[,,1]
     Omega.eps <- rGWish_sampler(1,b.star.eps,solve(D.star.eps),G,100)[,,1]
     for(j in 1:length(reffs)) {
-      #Omega.reffs[[j]] <- rgwish(n=1,b=b.star.reffs[j],D=D.star.reffs[[j]],adj.g=G)[,,1]
       Omega.reffs[[j]] <- rGWish_sampler(1,b.star.reffs[j],solve(D.star.reffs[[j]]),G,100)[,,1]
     }
     
